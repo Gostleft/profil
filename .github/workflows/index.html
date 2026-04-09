@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gostleft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --red: #ef4444;
+    --glass: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-hover: rgba(255,255,255,0.09);
+    --muted: #9ca3af;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background layers ── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+  .radial-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(239,68,68,0.18), transparent 42%),
+      radial-gradient(circle at 85% 25%, rgba(59,130,246,0.18), transparent 42%),
+      radial-gradient(circle at 50% 80%, rgba(249,115,22,0.10), transparent 40%);
+    filter: blur(50px);
+  }
+  .cursor-glow {
+    position: fixed; width: 180px; height: 180px; border-radius: 50%;
+    background: rgba(249,115,22,0.13); filter: blur(50px);
+    pointer-events: none; z-index: 1;
+    transform: translate(-50%,-50%);
+    transition: left 0.06s linear, top 0.06s linear;
+  }
+
+  /* ── Loading screen ── */
+  #loader {
+    position: fixed; inset: 0; z-index: 100;
+    background: #000; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.6s ease;
+  }
+  #loader h1 {
+    font-family: var(--font-display);
+    font-size: 3rem; font-weight: 800;
+    background: linear-gradient(90deg, #ef4444, #f97316, #3b82f6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: pulse-logo 1.4s ease-in-out infinite alternate;
+  }
+  @keyframes pulse-logo { from { opacity: 0.5; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+  /* ── Main layout ── */
+  .wrap {
+    position: relative; z-index: 2;
+    max-width: 480px; margin: 0 auto;
+    padding: 0 16px 120px;
+  }
+
+  /* ── Header ── */
+  .site-header {
+    text-align: center; padding: 36px 0 24px;
+    animation: fade-up 0.6s ease both;
+  }
+  .site-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.6rem; font-weight: 800;
+    background: linear-gradient(90deg, #ef4444, #f97316, #3b82f6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    animation: fade-up 0.5s ease both;
+  }
+  .card:hover {
+    transform: translateY(-2px) scale(1.015);
+    background: var(--glass-hover);
+    border-color: rgba(255,255,255,0.18);
+  }
+  .card.row { display: flex; justify-content: space-between; align-items: center; }
+  .card .muted { color: var(--muted); font-size: 0.88rem; }
+
+  /* ── Section labels ── */
+  .sec-label {
+    font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #6b7280; margin: 20px 0 8px 4px;
+    animation: fade-up 0.5s ease both;
+  }
+
+  /* ── Button grid ── */
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .btn {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 15px 12px;
+    color: #fff; font-family: var(--font-body); font-size: 0.95rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.15s ease, background 0.2s ease;
+    text-decoration: none;
+    animation: fade-up 0.5s ease both;
+  }
+  .btn:hover { transform: scale(1.05); background: var(--glass-hover); }
+  .btn.accent {
+    background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(59,130,246,0.2));
+    border-color: rgba(249,115,22,0.35);
+  }
+  .btn.accent:hover { background: linear-gradient(135deg, rgba(249,115,22,0.35), rgba(59,130,246,0.3)); }
+
+  /* Animation delays for cards */
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Music Player (fixed bottom) ── */
+  #player {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 50; width: calc(100% - 24px); max-width: 480px;
+    background: rgba(8,8,8,0.92);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 22px; padding: 13px 16px;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    display: none; align-items: center; gap: 12px;
+    box-shadow: 0 0 40px rgba(249,115,22,0.08);
+  }
+  .eq { display: flex; align-items: flex-end; gap: 2px; height: 18px; flex-shrink: 0; }
+  .eq-bar {
+    width: 3px; border-radius: 2px;
+    background: linear-gradient(to top, var(--orange), var(--blue));
+    animation: eq 0.7s ease-in-out infinite alternate;
+  }
+  .eq-bar:nth-child(1) { height: 6px;  animation-duration: 0.55s; }
+  .eq-bar:nth-child(2) { height: 14px; animation-duration: 0.85s; }
+  .eq-bar:nth-child(3) { height: 10px; animation-duration: 0.65s; }
+  .eq-bar:nth-child(4) { height: 16px; animation-duration: 1.0s; }
+  @keyframes eq { to { height: 2px; } }
+  .eq.paused .eq-bar { animation-play-state: paused; }
+
+  .track-info { flex: 1; overflow: hidden; }
+  .track-title { font-size: 0.88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-time  { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .prog-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 7px; cursor: pointer; }
+  .prog-fill { height: 3px; background: linear-gradient(90deg, var(--orange), var(--blue)); border-radius: 3px; width: 0%; transition: width 0.8s linear; }
+
+  .ctrl { background: none; border: none; color: #fff; cursor: pointer; font-size: 1.1rem; padding: 4px; opacity: 0.75; transition: opacity 0.15s; }
+  .ctrl:hover { opacity: 1; }
+  .play-btn {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--orange), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; opacity: 1 !important;
+  }
+  .vol-wrap { display: flex; align-items: center; gap: 5px; }
+  .vol-wrap span { font-size: 0.8rem; opacity: 0.6; }
+  input[type=range].vol {
+    width: 56px; height: 3px; -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.12); border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range].vol::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--orange); cursor: pointer;
+  }
+
+  /* ── Overlays ── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 22px; padding: 26px;
+    width: 100%; max-width: 440px;
+    max-height: 90vh; overflow-y: auto;
+    animation: modal-in 0.25s ease;
+  }
+  @keyframes modal-in { from { opacity:0; transform: scale(0.94) translateY(12px); } to { opacity:1; transform: none; } }
+
+  .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .modal-head h2 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; }
+  .modal-sub { font-size: 0.8rem; color: #6b7280; margin-bottom: 22px; }
+  .close-btn { background: none; border: none; color: #6b7280; font-size: 1.4rem; cursor: pointer; line-height: 1; margin-top: -4px; }
+  .close-btn:hover { color: #fff; }
+
+  /* Admin password screen */
+  .pw-screen { text-align: center; padding: 10px 0; }
+  .pw-screen .lock-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .pw-screen h2 { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 4px; }
+  .pw-screen p { font-size: 0.8rem; color: #6b7280; margin-bottom: 20px; }
+
+  /* Form fields */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.76rem; color: #9ca3af; margin-bottom: 6px; letter-spacing: 0.02em; }
+  .field input, .field textarea {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.11); border-radius: 11px;
+    color: #fff; font-family: var(--font-body); font-size: 0.92rem;
+    padding: 11px 13px; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field textarea:focus { border-color: rgba(249,115,22,0.55); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field input[type=password] { text-align: center; letter-spacing: 0.12em; }
+
+  .admin-sec {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--orange); margin: 22px 0 12px;
+    padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .submit-btn {
+    width: 100%; margin-top: 20px; padding: 14px;
+    border: none; border-radius: 13px;
+    background: linear-gradient(90deg, var(--orange), var(--blue));
+    color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 0.97rem;
+    cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+  }
+  .submit-btn:hover { opacity: 0.88; transform: scale(1.01); }
+  .submit-btn.secondary {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    margin-top: 10px;
+  }
+  .submit-btn.secondary:hover { background: rgba(255,255,255,0.12); }
+
+  .err-msg { font-size: 0.82rem; color: #ef4444; margin-top: 8px; min-height: 18px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: rgba(249,115,22,0.9); color: #fff; padding: 10px 26px;
+    border-radius: 30px; font-family: var(--font-body); font-size: 0.9rem;
+    z-index: 99; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loader"><h1>Gostleft</h1></div>
+
+<!-- BG -->
+<div class="radial-bg"></div>
+<canvas id="bg-canvas"></canvas>
+<div class="cursor-glow" id="glow"></div>
+
+<!-- Main -->
+<div class="wrap">
+  <header class="site-header">
+    <h1>Gostleft</h1>
+  </header>
+
+  <!-- Intro -->
+  <div class="card" style="animation-delay:.05s">
+    <h2 id="intro-title" style="font-family:'Syne',sans-serif;font-size:1.05rem;margin-bottom:6px">✨ Moin Moin</h2>
+    <p id="intro-text" class="muted">moin Ich bin der Gostleft hier findest du alles über mich 😎</p>
+  </div>
+
+  <!-- Socials -->
+  <div class="sec-label" style="animation-delay:.1s">Socials</div>
+  <div class="card row" style="animation-delay:.12s"><span>TikTok</span><span class="muted" id="s-tiktok">@gostleft</span></div>
+  <div class="card row" style="animation-delay:.15s"><span>YouTube</span><span class="muted" id="s-youtube">@gostleft</span></div>
+  <div class="card row" style="animation-delay:.18s"><span>Twitch</span><span class="muted" id="s-twitch">@gostleft</span></div>
+  <div class="card row" style="animation-delay:.21s"><span>Discord</span><span class="muted" id="s-discord">Lade...</span></div>
+
+  <!-- Projekte -->
+  <div class="sec-label" style="animation-delay:.25s">Projekte</div>
+  <div class="card row" style="animation-delay:.27s"><span id="p0-name">LunexClient</span><span class="muted" id="p0-link">lunexclient.de</span></div>
+  <div class="card row" style="animation-delay:.30s"><span id="p1-name">MC Server</span><span class="muted" id="p1-link">mc.lunexclient.de</span></div>
+  <div class="card row" style="animation-delay:.33s"><span id="p2-name">Bot</span><span class="muted" id="p2-link">bot.lunexclient.de</span></div>
+  <div class="card row" style="animation-delay:.36s"><span id="p3-name">Lunex Hosting</span><span class="muted" id="p3-link">lunexhosting.eu</span></div>
+
+  <!-- Buttons -->
+  <div class="sec-label" style="animation-delay:.40s">Kontakt</div>
+  <div class="btn-grid">
+    <button class="btn" style="animation-delay:.42s" onclick="document.getElementById('email-overlay').classList.add('open')">✉️ Email</button>
+    <a class="btn" id="paypal-btn" style="animation-delay:.44s" href="https://paypal.me/deinlink" target="_blank">💸 Spenden</a>
+    <button class="btn accent" style="animation-delay:.46s" onclick="openAdmin()">🔐 Admin Panel</button>
+    <button class="btn" style="animation-delay:.48s" id="music-toggle" onclick="toggleMusicPlayer()">🎧 Musik</button>
+  </div>
+</div>
+
+<!-- ── MUSIC PLAYER ── -->
+<div id="player">
+  <div class="eq" id="eq"><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div></div>
+  <div class="track-info">
+    <div class="track-title" id="track-name">lofi hip hop – beats to relax</div>
+    <div class="track-time" id="track-time">0:00 / ∞</div>
+    <div class="prog-bar" onclick="seekAudio(event)" id="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+  <button class="ctrl" onclick="prevTrack()" title="Vorherige">⏮</button>
+  <button class="ctrl play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+  <button class="ctrl" onclick="nextTrack()" title="Nächste">⏭</button>
+  <div class="vol-wrap">
+    <span>🔈</span>
+    <input type="range" class="vol" min="0" max="1" step="0.02" value="0.6" oninput="setVol(this.value)" title="Lautstärke">
+  </div>
+</div>
+
+<!-- ── ADMIN OVERLAY ── -->
+<div class="overlay" id="admin-overlay">
+  <div class="modal">
+
+    <!-- Password screen -->
+    <div id="pw-screen" class="pw-screen">
+      <div class="lock-icon">🔐</div>
+      <h2>Admin Panel</h2>
+      <p>Passwort eingeben um fortzufahren</p>
+      <div class="field"><input type="password" id="pw-input" placeholder="Passwort..." onkeydown="if(event.key==='Enter')checkPw()"></div>
+      <div class="err-msg" id="pw-err"></div>
+      <button class="submit-btn" onclick="checkPw()">Einloggen</button>
+      <button class="submit-btn secondary" onclick="document.getElementById('admin-overlay').classList.remove('open')">Abbrechen</button>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="admin-panel" style="display:none">
+      <div class="modal-head">
+        <h2 style="background:linear-gradient(90deg,#f97316,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Admin Panel</h2>
+        <button class="close-btn" onclick="closeAdmin()">✕</button>
+      </div>
+      <p class="modal-sub">Inhalte live bearbeiten – kein Code nötig ✨</p>
+
+      <div class="admin-sec">✦ Intro</div>
+      <div class="field"><label>Titel</label><input id="a-intro-title" value="✨ Moin Moin"></div>
+      <div class="field"><label>Beschreibungstext</label><textarea id="a-intro-text">moin Ich bin der Gostleft hier findest du alles über mich 😎</textarea></div>
+
+      <div class="admin-sec">✦ Socials</div>
+      <div class="field"><label>TikTok</label><input id="a-tiktok" value="@gostleft"></div>
+      <div class="field"><label>YouTube</label><input id="a-youtube" value="@gostleft"></div>
+      <div class="field"><label>Twitch</label><input id="a-twitch" value="@gostleft"></div>
+
+      <div class="admin-sec">✦ Projekte</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Projekt 1 – Name</label><input id="a-p0-name" value="LunexClient"></div>
+        <div class="field"><label>Projekt 1 – Link</label><input id="a-p0-link" value="lunexclient.de"></div>
+        <div class="field"><label>Projekt 2 – Name</label><input id="a-p1-name" value="MC Server"></div>
+        <div class="field"><label>Projekt 2 – Link</label><input id="a-p1-link" value="mc.lunexclient.de"></div>
+        <div class="field"><label>Projekt 3 – Name</label><input id="a-p2-name" value="Bot"></div>
+        <div class="field"><label>Projekt 3 – Link</label><input id="a-p2-link" value="bot.lunexclient.de"></div>
+        <div class="field"><label>Projekt 4 – Name</label><input id="a-p3-name" value="Lunex Hosting"></div>
+        <div class="field"><label>Projekt 4 – Link</label><input id="a-p3-link" value="lunexhosting.eu"></div>
+      </div>
+
+      <div class="admin-sec">✦ Links</div>
+      <div class="field"><label>PayPal Spenden-Link</label><input id="a-paypal" value="https://paypal.me/deinlink"></div>
+      <div class="field"><label>Email-Adresse</label><input id="a-email" value="gostleft10@gmail.com"></div>
+
+      <div class="admin-sec">✦ Admin Passwort ändern</div>
+      <div class="field"><label>Neues Passwort (leer lassen = nicht ändern)</label><input type="password" id="a-new-pw" placeholder="Neues Passwort..."></div>
+
+      <button class="submit-btn" onclick="applyChanges()">✅ Änderungen speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EMAIL OVERLAY ── -->
+<div class="overlay" id="email-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <h2>✉️ Email schreiben</h2>
+      <button class="close-btn" onclick="document.getElementById('email-overlay').classList.remove('open')">✕</button>
+    </div>
+    <div class="field"><label>Betreff</label><input id="mail-subj" placeholder="Dein Betreff..."></div>
+    <div class="field"><label>Nachricht</label><textarea id="mail-body" style="min-height:110px" placeholder="Deine Nachricht..."></textarea></div>
+    <button class="submit-btn" onclick="sendMail()">Senden 🚀</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── State ───────────────────────────────────────
+  let adminPw = 'gostleft2025';
+  let contactEmail = 'gostleft10@gmail.com';
+
+  // ─── Loader ──────────────────────────────────────
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const l = document.getElementById('loader');
+      l.style.opacity = '0';
+      setTimeout(() => l.style.display = 'none', 600);
+    }, 1400);
+  });
+
+  // ─── Stars canvas ────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    const resize = () => { canvas.width = innerWidth; canvas.height = innerHeight; };
+    resize(); window.addEventListener('resize', resize);
+    const stars = Array.from({ length: 130 }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      r: Math.random() * 1.6 + 0.2, d: Math.random() * 0.45 + 0.15
+    }));
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      stars.forEach(s => {
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+        s.y += s.d; if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+      });
+    }
+    setInterval(draw, 30);
+  })();
+
+  // ─── Cursor glow ─────────────────────────────────
+  document.addEventListener('mousemove', e => {
+    const g = document.getElementById('glow');
+    g.style.left = e.clientX + 'px'; g.style.top = e.clientY + 'px';
+  });
+
+  // ─── Discord widget ───────────────────────────────
+  fetch('https://discord.com/api/guilds/YOUR_SERVER_ID/widget.json')
+    .then(r => r.json())
+    .then(d => document.getElementById('s-discord').textContent = d.presence_count + ' online')
+    .catch(() => document.getElementById('s-discord').textContent = 'Discord');
+
+  // ─── Toast ───────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ─── MUSIC PLAYER ────────────────────────────────
+  const tracks = [
+    { name: 'lofi hip hop – beats to relax',    url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_946f9047ec.mp3' },
+    { name: 'chill lofi – study vibes',          url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+    { name: 'lofi dreams – night mode',          url: 'https://cdn.pixabay.com/download/audio/2021/11/30/audio_cb543de8b0.mp3' },
+  ];
+  let cur = 0, playing = false, audio = null, progTimer = null;
+
+  function initAudio() {
+    if (audio) { audio.pause(); clearInterval(progTimer); }
+    audio = new Audio(tracks[cur].url);
+    audio.volume = parseFloat(document.querySelector('.vol').value);
+    audio.addEventListener('ended', nextTrack);
+    document.getElementById('track-name').textContent = tracks[cur].name;
+    document.getElementById('prog-fill').style.width = '0%';
+    document.getElementById('track-time').textContent = '0:00 / …';
+  }
+
+  function toggleMusicPlayer() {
+    const p = document.getElementById('player');
+    if (p.style.display === 'none' || p.style.display === '') {
+      p.style.display = 'flex';
+      if (!audio) initAudio();
+    } else {
+      p.style.display = 'none';
+      if (playing) { audio.pause(); playing = false; clearInterval(progTimer); updatePlayBtn(); }
+    }
+  }
+
+  function togglePlay() {
+    if (!audio) initAudio();
+    if (playing) {
+      audio.pause(); playing = false; clearInterval(progTimer);
+    } else {
+      audio.play().catch(() => {});
+      playing = true;
+      progTimer = setInterval(updateProg, 800);
+    }
+    updatePlayBtn();
+  }
+
+  function updatePlayBtn() {
+    document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
+    document.getElementById('eq').classList.toggle('paused', !playing);
+  }
+
+  function updateProg() {
+    if (!audio || !audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    const fmt = s => { const m = Math.floor(s / 60); return m + ':' + (s % 60 < 10 ? '0' : '') + Math.floor(s % 60); };
+    document.getElementById('track-time').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+  }
+
+  function seekAudio(e) {
+    if (!audio || !audio.duration) return;
+    const bar = document.getElementById('prog-bar');
+    const pct = e.offsetX / bar.offsetWidth;
+    audio.currentTime = pct * audio.duration;
+  }
+
+  function setVol(v) { if (audio) audio.volume = parseFloat(v); }
+
+  function prevTrack() {
+    cur = (cur - 1 + tracks.length) % tracks.length;
+    const was = playing; if (playing) { audio.pause(); playing = false; clearInterval(progTimer); }
+    initAudio(); if (was) togglePlay();
+  }
+
+  function nextTrack() {
+    cur = (cur + 1) % tracks.length;
+    const was = playing; if (playing) { audio.pause(); playing = false; clearInterval(progTimer); }
+    initAudio(); if (was) togglePlay();
+  }
+
+  // ─── ADMIN ───────────────────────────────────────
+  function openAdmin() {
+    document.getElementById('admin-overlay').classList.add('open');
+    document.getElementById('pw-screen').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-err').textContent = '';
+    setTimeout(() => document.getElementById('pw-input').focus(), 200);
+  }
+
+  function closeAdmin() {
+    document.getElementById('admin-overlay').classList.remove('open');
+  }
+
+  function checkPw() {
+    const val = document.getElementById('pw-input').value;
+    if (val === adminPw) {
+      document.getElementById('pw-screen').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      loadAdmin();
+    } else {
+      document.getElementById('pw-err').textContent = '❌ Falsches Passwort';
+      document.getElementById('pw-input').value = '';
+    }
+  }
+
+  function loadAdmin() {
+    document.getElementById('a-intro-title').value = document.getElementById('intro-title').textContent;
+    document.getElementById('a-intro-text').value  = document.getElementById('intro-text').textContent;
+    document.getElementById('a-tiktok').value  = document.getElementById('s-tiktok').textContent;
+    document.getElementById('a-youtube').value = document.getElementById('s-youtube').textContent;
+    document.getElementById('a-twitch').value  = document.getElementById('s-twitch').textContent;
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('a-p'+i+'-name').value = document.getElementById('p'+i+'-name').textContent;
+      document.getElementById('a-p'+i+'-link').value = document.getElementById('p'+i+'-link').textContent;
+    }
+    document.getElementById('a-paypal').value = document.getElementById('paypal-btn').href;
+    document.getElementById('a-email').value  = contactEmail;
+    document.getElementById('a-new-pw').value = '';
+  }
+
+  function applyChanges() {
+    document.getElementById('intro-title').textContent = document.getElementById('a-intro-title').value;
+    document.getElementById('intro-text').textContent  = document.getElementById('a-intro-text').value;
+    document.getElementById('s-tiktok').textContent  = document.getElementById('a-tiktok').value;
+    document.getElementById('s-youtube').textContent = document.getElementById('a-youtube').value;
+    document.getElementById('s-twitch').textContent  = document.getElementById('a-twitch').value;
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('p'+i+'-name').textContent = document.getElementById('a-p'+i+'-name').value;
+      document.getElementById('p'+i+'-link').textContent = document.getElementById('a-p'+i+'-link').value;
+    }
+    document.getElementById('paypal-btn').href = document.getElementById('a-paypal').value;
+    contactEmail = document.getElementById('a-email').value;
+    const newPw = document.getElementById('a-new-pw').value.trim();
+    if (newPw) adminPw = newPw;
+    closeAdmin();
+    showToast('✅ Änderungen gespeichert!');
+  }
+
+  // ─── EMAIL ───────────────────────────────────────
+  function sendMail() {
+    const s = encodeURIComponent(document.getElementById('mail-subj').value);
+    const b = encodeURIComponent(document.getElementById('mail-body').value);
+    window.location.href = 'mailto:' + contactEmail + '?subject=' + s + '&body=' + b;
+  }
+
+  // ─── Close overlays on backdrop click ────────────
+  document.querySelectorAll('.overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+</body>
+</html>
